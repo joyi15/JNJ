@@ -1,0 +1,262 @@
+Sub scrum()
+
+Dim scrumwb As Workbook
+Set scrumwb = ActiveWorkbook 'Destination workbook
+'___________________________________________________________________________________________________________________
+'DEFINE SPRINT NAME
+'USED FOR SHEET NAME
+
+Dim sprintnum As Variant
+sprintnum = InputBox("Please enter Sprint Number")
+'user input NUMBER
+'ADD error message in case INTEGER is not entered correctly
+'must be integer, new number, consecutive
+
+Dim sprintname As String
+sprintname = "Sprint " & sprintnum
+'____________________________________________________________________________________________________________________
+'user input sprint date for heading
+'to be printed in cell J1
+
+'Dim sprint_date As Variant
+'sprint_date = InputBox("Please enter Sprint Date (Month DD - Month DD)")
+'____________________________________________________________________________________________________________________
+'ADD NEW SHEET FOR CURRENT SPRINT
+
+Sheets.Add(After:=Worksheets("Sprint " & sprintnum - 1)).Name = sprintname
+'add new sheet with name from user input
+'add after previous sprint
+'____________________________________________________________________________________________________________________
+'FORMAT LAYOUT TO NEW SHEET
+
+'copy headers from sheet before current sprint
+
+'last column of summary table
+Dim lCol2 As Long
+lCol2 = scrumwb.Worksheets("Sprint " & sprintnum - 1).Range("A1").SpecialCells(xlCellTypeLastCell).Column
+
+'last column of main table
+Dim lCol As Long
+lCol = scrumwb.Worksheets("Sprint " & sprintnum - 1).Cells(1, Columns.Count).End(xlToLeft).Column - 2
+
+'headers of main table
+scrumwb.Worksheets("Sprint " & sprintnum - 1).Range(scrumwb.Worksheets("Sprint " & sprintnum - 1).Cells(1, 1), scrumwb.Worksheets("Sprint " & sprintnum - 1).Cells(2, lCol)).Copy scrumwb.Worksheets(sprintname).Range(scrumwb.Worksheets(sprintname).Cells(1, 1), scrumwb.Worksheets(sprintname).Cells(2, lCol))
+
+'team member table
+scrumwb.Worksheets("Sprint " & sprintnum - 1).Range(scrumwb.Worksheets("Sprint " & sprintnum - 1).Columns(lCol + 2), scrumwb.Worksheets("Sprint " & sprintnum - 1).Columns(lCol2)).Copy scrumwb.Worksheets(sprintname).Range(scrumwb.Worksheets(sprintname).Columns(lCol + 2), scrumwb.Worksheets(sprintname).Columns(lCol2))
+'Worksheets("Sprint " & sprintnum - 1).Range(Columns(lCol + 2), Columns(lCol2)).Copy Worksheets(sprintname).Range(Columns(lCol + 2), Columns(lCol2))
+'____________________________________________________________________________________________________________________
+'FORMULA & FORMAT CELLS (Columns B-G)
+
+'hard coded**************************
+'first cell with points formula
+Worksheets("Sprint " & sprintnum - 1).Range("C3").Copy
+Worksheets(sprintname).Range("C3").PasteSpecial Paste:=xlPasteFormulas
+'priority rating formula
+Worksheets("Sprint " & sprintnum - 1).Range("F3").Copy
+Worksheets(sprintname).Range("F3").PasteSpecial Paste:=xlPasteFormulas
+'priority color formatting
+'Worksheets("Sprint " & sprintnum - 1).Range("E3").Copy
+'Worksheets(sprintname).Range("E3").PasteSpecial Paste:=xlPasteFormats
+'first cell with conditional formatting for Y/N
+'Worksheets("Sprint " & sprintnum - 1).Range("E3").Copy
+'Worksheets(sprintname).Range("E3").PasteSpecial Paste:=xlPasteFormats
+
+'____________________________________________________________________________________________________________________
+
+'PRINT SPRINT DATES IN I1
+'scrumwb.Worksheets(sprintname).Range("I1") = sprintname & ": " & sprint_date
+scrumwb.Worksheets(sprintname).Cells(1, lCol + 2) = sprintname & ": ENTER DATES"
+scrumwb.Worksheets(sprintname).Cells(1, lCol + 2).Font.Bold = True
+
+'++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+'CHOOSE REPORT EXCEL DOC
+
+'prompt user to select file
+MsgBox ("Please choose report file exported from StormBoard as Excel File")
+
+'add default file name****************************************
+'function to choose file
+ With Application.FileDialog(msoFileDialogFilePicker)
+        'Makes sure the user can select only one file
+        .AllowMultiSelect = False
+        'Filter to just the following types of files to narrow down selection options
+        .Filters.Add "Excel Files", "*.xlsx; *.xlsm; *.xls; *.xlsb", 1
+        'Show the dialog box
+        .Show
+        
+        'Store in fullpath variable
+        fullpath = .SelectedItems.Item(1)
+    End With
+    'function to open workbook
+    Workbooks.Open fullpath
+    
+'name chosen file
+Dim reportwb As Workbook
+Set reportwb = ActiveWorkbook
+
+'+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+'READ DATA FROM REPORT TO NEW WORKBOOK
+
+Dim lastrow As Long 'last row of report
+Dim lastbacklog As Long 'last cell of backlog
+Dim lastrowscrum As Long 'last row of scrum
+Dim i As Integer 'iteration for for loop; reads lines of report
+Dim j As Integer 'iteration of row of scrumwb
+'-------------------------------------------------------------------
+lastrow = reportwb.Sheets(2).Cells.Find("*", SearchOrder:=xlByRows, SearchDirection:=xlPrevious).Row
+'last row of report wb
+lastbacklog = scrumwb.Worksheets("Backlog").Cells.Find("*", SearchOrder:=xlByRows, SearchDirection:=xlPrevious).Row + 1
+'last row of backlog sheet containing data
+j = 3
+'row number referring to scrum wb; start after headers
+'______________________________________________________________________________________________________________________
+'copy data from report to scrum wb
+'task name from column 2 to 1
+'assignee from column 7 to 4
+For i = 3 To lastrow
+'start at row 3 to skip header rows; refers to report wb
+'----------------------------------------
+'HARD CODED
+    'report wb never changes
+    'hard code destination columns for simplicity
+If InStr(reportwb.Sheets(2).Cells(i, 11).Value, "To Do") > 0 Or InStr(reportwb.Sheets(2).Cells(i, 11).Value, "In Work") > 0 Or InStr(reportwb.Sheets(2).Cells(i, 11).Value, "Review") > 0 Or InStr(reportwb.Sheets(2).Cells(i, 11).Value, "Done") > 0 Then
+    taskname = reportwb.Sheets(2).Cells(i, 2).Value
+    scrumwb.Worksheets(sprintname).Cells(j, 1) = taskname
+    assignee = reportwb.Sheets(2).Cells(i, 14).Value
+    scrumwb.Worksheets(sprintname).Cells(j, 4) = assignee
+    '----------------------------------------
+    'priority from column K to column E
+    If InStr(reportwb.Sheets(2).Cells(i, 11).Value, "High Prio") > 0 Then
+        scrumwb.Worksheets(sprintname).Cells(j, 5) = "H"
+        scrumwb.Worksheets(sprintname).Cells(j, 5).Interior.Color = RGB(255, 199, 206)
+    ElseIf InStr(reportwb.Sheets(2).Cells(i, 11).Value, "Med Prio") > 0 Then
+        scrumwb.Worksheets(sprintname).Cells(j, 5) = "M"
+        scrumwb.Worksheets(sprintname).Cells(j, 5).Interior.Color = RGB(255, 235, 156)
+    ElseIf InStr(reportwb.Sheets(2).Cells(i, 11).Value, "Low Prio") > 0 Then
+        scrumwb.Worksheets(sprintname).Cells(j, 5) = "L"
+        scrumwb.Worksheets(sprintname).Cells(j, 5).Interior.Color = RGB(198, 239, 206)
+    End If
+    '----------------------------------------
+    'sizing from task name (column A) to column B
+    If InStr(scrumwb.Worksheets(sprintname).Cells(j, 1).Value, "(L)") > 0 Then
+        scrumwb.Worksheets(sprintname).Cells(j, 2) = "L"
+    ElseIf InStr(scrumwb.Worksheets(sprintname).Cells(j, 1).Value, "(M)") > 0 Then
+        scrumwb.Worksheets(sprintname).Cells(j, 2) = "M"
+    ElseIf InStr(scrumwb.Worksheets(sprintname).Cells(j, 1).Value, "(S)") > 0 Then
+        scrumwb.Worksheets(sprintname).Cells(j, 2) = "S"
+    ElseIf InStr(scrumwb.Worksheets(sprintname).Cells(j, 1).Value, "(XS)") > 0 Then
+        scrumwb.Worksheets(sprintname).Cells(j, 2) = "XS"
+    End If
+    '----------------------------------------
+    'Y/N for completed and color cell green/red (column 11 to column G)
+    If InStr(reportwb.Sheets(2).Cells(i, 11).Value, "Done") > 0 Then
+        scrumwb.Worksheets(sprintname).Cells(j, 7) = "Y"
+        scrumwb.Worksheets(sprintname).Cells(j, 7).Interior.Color = RGB(0, 255, 0)
+    Else
+        scrumwb.Worksheets(sprintname).Cells(j, 7) = "N"
+        scrumwb.Worksheets(sprintname).Cells(j, 7).Interior.Color = RGB(255, 0, 0)
+    End If
+    '----------------------------------------
+    'shape "GEM" to Y column H
+    If InStr(reportwb.Sheets(2).Cells(i, 8).Value, "Gem") > 0 Then
+        scrumwb.Worksheets(sprintname).Cells(j, 8) = "Y"
+    Else
+        scrumwb.Worksheets(sprintname).Cells(j, 8) = "N"
+    End If
+    j = j + 1
+'----------------------------------------
+'BACKLOG sheet
+ElseIf InStr(reportwb.Sheets(2).Cells(i, 11).Value, "Backlog") > 0 Then
+    taskname = reportwb.Sheets(2).Cells(i, 2).Value
+    scrumwb.Worksheets("Backlog").Cells(lastbacklog, 2) = taskname
+    assignee = reportwb.Sheets(2).Cells(i, 7).Value
+    scrumwb.Worksheets("Backlog").Cells(lastbacklog, 7) = assignee
+    'ADD HERE priority from column K to column E
+    If InStr(reportwb.Sheets(2).Cells(i, 11).Value, "High Prio") > 0 Then
+        scrumwb.Worksheets("Backlog").Cells(lastbacklog, 8) = "H"
+    ElseIf InStr(reportwb.Sheets(2).Cells(i, 11).Value, "Med Prio") > 0 Then
+        scrumwb.Worksheets("Backlog").Cells(lastbacklog, 8) = "M"
+    ElseIf InStr(reportwb.Sheets(2).Cells(i, 11).Value, "Low Prio") > 0 Then
+        scrumwb.Worksheets("Backlog").Cells(lastbacklog, 8) = "L"
+    End If
+    'sizing from task name (column A) to column B
+    If InStr(scrumwb.Worksheets("Backlog").Cells(lastbacklog, 2).Value, "(L)") > 0 Then
+        scrumwb.Worksheets("Backlog").Cells(j, 4) = "L"
+    ElseIf InStr(scrumwb.Worksheets("Backlog").Cells(lastbacklog, 2).Value, "(M)") > 0 Then
+        scrumwb.Worksheets("Backlog").Cells(lastbacklog, 4) = "M"
+    ElseIf InStr(scrumwb.Worksheets("Backlog").Cells(lastbacklog, 2).Value, "(S)") > 0 Then
+        scrumwb.Worksheets("Backlog").Cells(lastbacklog, 4) = "S"
+    ElseIf InStr(scrumwb.Worksheets("Backlog").Cells(lastbacklog, 2).Value, "(XS)") > 0 Then
+        scrumwb.Worksheets("Backlog").Cells(lastbacklog, 4) = "XS"
+    End If
+    lastbacklog = lastbacklog + 1
+End If
+
+Next i
+'_____________________________________________________________________________________________________________________
+
+'AUTOFILL ENTIRE COLUMNS FORMULAS & FORMATS
+scrumwb.Activate
+'----------------------------------------
+lastrowscrum = scrumwb.Worksheets(sprintname).Cells.Find("*", SearchOrder:=xlByRows, SearchDirection:=xlPrevious).Row
+'----------------------------------------
+'set first column width as original X8
+Columns(1).EntireColumn.ColumnWidth = Columns(1).EntireColumn.ColumnWidth * 8
+'----------------------------------------
+'autofit the rest of the columns
+Columns("B:Q").EntireColumn.AutoFit
+'----------------------------------------
+'autofill the formula to calculate POINTS in column C
+Worksheets(sprintname).Range("C3").Select
+Selection.AutoFill Destination:=Range("C3:C" & lastrowscrum)
+'----------------------------------------
+'autofill color conditioning for SIZE
+'Worksheets(sprintname).Range("E3").Select
+'Selection.AutoFill Destination:=Range("E3:E" & lastrowscrum)
+'----------------------------------------
+'autofill formula for priority rating
+Worksheets(sprintname).Range("F3").Select
+Selection.AutoFill Destination:=Range("F3:F" & lastrowscrum)
+'----------------------------------------
+'autofill the conditional formatting for the COMPLETED Y/N column F
+'Worksheets(sprintname).Range("G3").Select
+'Selection.AutoFill Destination:=Range("G3:G" & lastrowscrum)
+
+'__________________________________________________________________________________________________________________________________
+'FORMAT AS TABLE
+scrumwb.Worksheets(sprintname).Activate
+Dim tbl As ListObject
+Dim rng As Range
+Set rng = Range("A1:H" & lastrowscrum)
+Set tbl = ActiveSheet.ListObjects.Add(xlSrcRange, rng, xlYes)
+tbl.TableStyle = "tablestylemedium15"
+'__________________________________________________________________________________________________________________________________
+'ADD TOTAL NUMBER STORIES
+scrumwb.Worksheets(sprintname).Cells(6, lCol2) = Application.WorksheetFunction.CountA(Range("A1:A" & lastrowscrum)) - 1
+'__________________________________________________________________________________________________________________________________
+'REMOVE DUPLICATES & BLANKS FROM BACKLOG SHEET
+scrumwb.Worksheets("Backlog").Activate
+scrumwb.Worksheets("Backlog").Range("E2").Select
+Selection.AutoFill Destination:=Range("E2:E" & lastbacklog)
+'remove duplicates from backlog sheet
+scrumwb.Worksheets("Backlog").Range("B1:I" & lastbacklog).RemoveDuplicates Columns:=1, Header:=xlGuess
+'column 1 of array is column B (being read for duplicates)
+
+'remove blanks (row)
+Dim blanks As Range
+Set blanks = Range("B1:B" & lastbacklog).SpecialCells(xlCellTypeBlanks)
+On Error GoTo 0
+blanks.EntireRow.Delete
+'--------------------------------------------------------
+'activate current sprint worksheet (for ease of view)
+scrumwb.Worksheets(sprintname).Activate
+'save scrum workbook in case of user error
+ActiveWorkbook.Save
+'++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+'close exported report workbook without saving
+reportwb.Activate
+reportwb.Close False
+
+End Sub
+
